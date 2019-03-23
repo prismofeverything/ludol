@@ -5,19 +5,17 @@
    [ludol.organism :refer :all]))
 
 (def dead-organism
-  {:eat {[:b 5] {:food 3}}
-   :move {}
-   :grow {}})
+  {[:b 5] {:role :eat :food 3}})
 
 (def minimal-organism
-  {:eat {[:d 8] {:food 1}}
-   :move {[:d 9] {:food 1}}
-   :grow {[:d 10] {:food 1}}})
+  {[:d 8] {:role :eat :food 1}
+   [:d 9] {:role :move :food 1}
+   [:d 10] {:role :grow :food 1}})
 
 (def unconnected-organism
-  {:eat {[:d 8] {:food 1}}
-   :move {[:d 9] {:food 1}}
-   :grow {[:b 4] {:food 2}}})
+  {[:d 8] {:role :eat :food 1}
+   [:d 9] {:role :move :food 1}
+   [:b 4] {:role :grow :food 2}})
 
 (deftest alive-test
   (is (alive? minimal-organism))

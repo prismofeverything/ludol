@@ -8,16 +8,12 @@
 
 (defn spaces-for
   [organism]
-  (rings/map-cat keys (vals organism)))
+  (keys organism))
 
 (defn alive?
   [organism]
-  (not
-   (some
-    (partial = 0)
-    (map
-     (comp count last)
-     organism))))
+  (= (count (set (map :role (vals organism))))
+     3))
 
 (defn group-adjacencies
   [adjacent group]
@@ -43,11 +39,11 @@
                   (fn [[new-group new-adjacent-to]]
                     (if (empty? (set/intersection adjacent-to (set new-group)))
                       [new-group new-adjacent-to]
-                      [(concat group new-group)
+                      [(reduce into [] [group new-group])
                        (set/union adjacent-to new-adjacent-to)]))
                   merged-groups)]
              (if (= new-groups merged-groups)
                (conj merged-groups [group adjacent-to])
                new-groups)))
          [] adjacencies)]
-    (keys merged-groups)))
+    (map first merged-groups)))
