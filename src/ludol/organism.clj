@@ -3,8 +3,14 @@
    [clojure.set :as set]
    [ludol.rings :as rings]))
 
-(def disk-types
-  [:eat :move :grow])
+(def disk-power
+  {:eat :grow
+   :move :eat
+   :grow :move})
+
+(defn devours?
+  [aggressor target]
+  (= target (disk-power aggressor)))
 
 (defn spaces-for
   [organism]
@@ -15,35 +21,60 @@
   (= (count (set (map :role (vals organism))))
      3))
 
-(defn group-adjacencies
-  [adjacent group]
-  (apply set (map adjacent group)))
+(defn all-nodes
+  [player]
+  (apply merge (:organisms player)))
 
-(defn adjacent-groups
-  [adjacent groups]
+(defn tag-nodes
+  [key tag player]
+  (reduce-kv
+   (fn [m node info]
+     (assoc m node (assoc info key tag)))
+   {} (all-nodes player)))
+
+(defn tag-players
+  [players]
   (map
-   (juxt
-    identity
-    (partial group-adjacencies adjacent))
-   groups))
+   (partial tag-nodes :player)
+   (range)
+   players))
 
-(defn connected-groups
-  [adjacent spaces]
-  (let [groups (map vector spaces)
-        adjacencies (adjacent-groups adjacent groups)
-        merged-groups
-        (reduce
-         (fn [merged-groups [group adjacent-to]]
-           (let [new-groups
-                 (mapv
-                  (fn [[new-group new-adjacent-to]]
-                    (if (empty? (set/intersection adjacent-to (set new-group)))
-                      [new-group new-adjacent-to]
-                      [(reduce into [] [group new-group])
-                       (set/union adjacent-to new-adjacent-to)]))
-                  merged-groups)]
-             (if (= new-groups merged-groups)
-               (conj merged-groups [group adjacent-to])
-               new-groups)))
-         [] adjacencies)]
-    (map first merged-groups)))
+(defn node-conflict?
+  [node other]
+  (and
+   (not=
+    (:player other)
+    (:player node))
+   (devours?
+    (:role other)
+    (:role node))))
+
+(defn find-conflicts
+  [adjacent players]
+  (let [nodes (apply merge (tag-players players))]
+    (mapv
+     first
+     (filter
+      (fn [[space node]]
+        (let [opposing
+              (filter
+               (partial node-conflict? node)
+               (map nodes (adjacent space)))]
+          (> (count opposing) 0)))
+      nodes))))
+
+(defn repartition-organisms
+  [adjacent removals organisms]
+  (let [merged (apply merge organisms)
+        seared (apply dissoc merged removals)
+        groups (rings/connected-groups adjacent (keys seared))]
+    (map (partial select-keys seared) groups)))
+
+(defn resolve-conflicts
+  [adjacent players]
+  (let [removals (find-conflicts adjacent players)
+        repartition (partial repartition-organisms adjacent removals)]
+    (map
+     (fn [player]
+       (update player :organisms repartition))
+     players)))
