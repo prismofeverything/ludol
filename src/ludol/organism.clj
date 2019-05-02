@@ -78,3 +78,6 @@
      (fn [player]
        (update player :organisms repartition))
      players)))
+
+
+;; The ribosome retains interpretable molecular records of a world of primordial molecules from around 4 billion years ago.
